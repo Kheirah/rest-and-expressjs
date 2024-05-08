@@ -2,11 +2,22 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
-const notes = {};
-let nextId = 1;
+const notes = {
+  1: { id: 1, content: "learning react" },
+  2: { id: 2, content: "building a react project" },
+  3: { id: 3, content: "getting to know sql" },
+};
+let nextId = 4;
 
 app.get("/", (request, response) => {
-  response.send(notes);
+  const { search } = request.query;
+  if (search) {
+    const filtered = Object.values(notes).filter((note) =>
+      note.content.includes(search)
+    );
+    return response.send(filtered);
+  }
+  response.send(Object.values(notes));
 });
 
 app.get("/:id", (request, response) => {
