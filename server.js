@@ -1,4 +1,6 @@
 const express = require("express");
+const postgres = require("@vercel/postgres");
+
 const app = express();
 app.use(express.json());
 
@@ -10,6 +12,7 @@ const notes = {
 let nextId = 4;
 
 app.get("/", (request, response) => {
+  createNotes();
   const { search } = request.query;
   if (search) {
     const filtered = Object.values(notes).filter((note) =>
@@ -21,6 +24,7 @@ app.get("/", (request, response) => {
 });
 
 app.get("/:id", (request, response) => {
+  createNotes();
   const id = request.params.id;
   if (notes[id]) {
     response.send(notes[id]);
@@ -30,12 +34,14 @@ app.get("/:id", (request, response) => {
 });
 
 app.post("/", (request, response) => {
+  createNotes();
   const id = nextId++;
   notes[id] = { id, note: request.body.content };
   response.send(notes[id]);
 });
 
 app.put("/:id", (request, response) => {
+  createNotes();
   const { id } = request.params;
   const { content } = request.body;
 
@@ -48,6 +54,7 @@ app.put("/:id", (request, response) => {
 });
 
 app.delete("/:id", (request, response) => {
+  createNotes();
   const { id } = request.params;
   if (notes[id]) {
     delete notes[id];
@@ -61,3 +68,13 @@ const port = 3000;
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
 });
+
+async function createNotes() {
+  await postgres.sql`
+    CREATE TABLE IF NOT EXISTS notes (
+      id SERIAL PRIMARY KEY,
+      content VARCHAR(255) NOT NULL,
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  )
+  `;
+}
