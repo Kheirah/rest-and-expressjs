@@ -11,33 +11,46 @@ const notes = {
 };
 let nextId = 4;
 
-app.get("/", (request, response) => {
+app.get("/", async (request, response) => {
   createNotes();
-  const { search } = request.query;
-  if (search) {
-    const filtered = Object.values(notes).filter((note) =>
-      note.content.includes(search)
-    );
-    return response.send(filtered);
-  }
-  response.send(Object.values(notes));
+  const { rows } = await postgres.sql`
+    SELECT * FROM notes
+  `;
+
+  response.send(rows);
 });
 
-app.get("/:id", (request, response) => {
+app.get("/:id", async (request, response) => {
   createNotes();
-  const id = request.params.id;
-  if (notes[id]) {
-    response.send(notes[id]);
+  const { id } = request.params;
+  const { rows } = await postgres.sql`
+    SELECT * FROM notes WHERE id = ${id}
+  `;
+
+  if (!rows.length) {
+    return response.send([]);
+  }
+
+  response.send(rows[0]);
+});
+
+app.post("/", async (request, response) => {
+  createNotes();
+  const { content } = request.body;
+
+  if (!content) {
+    return response.send("Note NOT created since content is missing."); //early return
+  }
+
+  const res = await postgres.sql`
+    INSERT INTO notes (content) VALUES (${content})
+  `;
+
+  if (res.rowCount > 0) {
+    response.send("Successfully created the note.");
   } else {
-    response.status(404).send("This note does not exist.");
+    response.send("Could not create the note.");
   }
-});
-
-app.post("/", (request, response) => {
-  createNotes();
-  const id = nextId++;
-  notes[id] = { id, note: request.body.content };
-  response.send(notes[id]);
 });
 
 app.put("/:id", (request, response) => {
