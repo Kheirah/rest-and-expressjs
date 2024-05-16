@@ -12,8 +12,8 @@ SQL JOINS - TODO:
 Every user has multiple notes.
 
 - [x] "/" : POST (create user) & GET (display welcome message)
-- [ ] "/:user" : GET (all notes of that user) & POST (create new note)
-- [ ] "/:user/:note" : GET (individual note) & PUT (change existing note) & DELETE (remove existing note)
+- [x] "/:user" : GET (all notes of that user) & POST (create new note)
+- [x] "/:user/:note" : GET (individual note) & PUT (change existing note) & DELETE (remove existing note)
 
 */
 
@@ -42,6 +42,23 @@ app.post("/", async (request, response) => {
 
 app.get("/:user", async (request, response) => {
   createTables();
+  const { user } = request.params;
+
+  try {
+    const res = await postgres.sql`
+      SELECT * FROM notes
+      JOIN users ON notes."userId" = users.id
+      WHERE users.username = ${user}
+    `;
+
+    if (res.rowCount > 0) {
+      response.send(res.rows);
+    } else {
+      response.send("Notes could NOT be found.");
+    }
+  } catch (error) {
+    response.send(`Something went wrong. ${error}`);
+  }
 });
 
 app.post("/:user", async (request, response) => {
@@ -63,16 +80,75 @@ app.post("/:user", async (request, response) => {
   }
 });
 
-app.get("/:user/:note", (request, response) => {
+app.get("/:user/:note", async (request, response) => {
   createTables();
+  const { user, note } = request.params;
+
+  try {
+    const res = await postgres.sql`
+      SELECT * FROM notes
+      JOIN users ON notes."userId" = users.id
+      WHERE notes.id = ${note} AND users.username = ${user};
+    `;
+
+    if (res.rowCount > 0) {
+      response.send(res.rows);
+    } else {
+      response.send("Note could NOT be found.");
+    }
+  } catch (error) {
+    response.send(`Something went wrong. ${error}`);
+  }
 });
 
-app.put("/:user/:note", (request, response) => {
+app.put("/:user/:note", async (request, response) => {
   createTables();
+  const { user, note } = request.params;
+  const { content } = request.body;
+
+  try {
+    const res = await postgres.sql`
+      UPDATE notes
+      SET content = ${content}
+      WHERE id = ${note} AND "userId" = (
+        SELECT id FROM users WHERE username = ${user}
+      )
+    `;
+
+    if (res.rowCount > 0) {
+      response.send(
+        `Note with ID ${note} updated successfully for user ${user}.`
+      );
+    } else {
+      response.send(
+        `Note with ID ${note} not found or does not belong to user ${user}.`
+      );
+    }
+  } catch (error) {
+    response.send(`Something went wrong. ${error}`);
+  }
 });
 
-app.delete("/:user/:note", (request, response) => {
+app.delete("/:user/:note", async (request, response) => {
   createTables();
+  const { user, note } = request.params;
+
+  try {
+    const res = await postgres.sql`
+      DELETE FROM notes
+      WHERE id = ${note} AND "userId" = (
+        SELECT id FROM users WHERE username = ${user}
+      )
+    `;
+
+    if (res.rowCount > 0) {
+      response.send(`Note with ID ${note} deleted successfully.`);
+    } else {
+      response.send(`Note with ID ${note} not found.`);
+    }
+  } catch (error) {
+    response.send(`Something went wrong. ${error}`);
+  }
 });
 
 const port = 3000;
