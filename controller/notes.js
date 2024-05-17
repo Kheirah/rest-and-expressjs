@@ -5,7 +5,7 @@ const getAllNotes = async (request, response) => {
 
   try {
     const res = await postgres.sql`
-        SELECT * FROM notes
+        SELECT notes.id, notes.content, notes."createdAt", notes."userId" FROM notes
         JOIN users ON notes."userId" = users.id
         WHERE UPPER(users.username) = UPPER(${user})
       `;
@@ -13,28 +13,28 @@ const getAllNotes = async (request, response) => {
     if (res.rowCount > 0) {
       response.send(res.rows);
     } else {
-      response.send("Notes could NOT be found.");
+      response.send({ message: "Notes could NOT be found." });
     }
   } catch (error) {
-    response.send(`Something went wrong. ${error}`);
+    response.send({ message: `Something went wrong. ${error}` });
   }
 };
 
 const createNote = async (request, response) => {
-  const { content } = request.body;
   const { user } = request.params;
+  const { content } = request.body;
 
   try {
     const res =
       await postgres.sql`INSERT INTO notes (content, "userId") VALUES (${content}, (SELECT id FROM users WHERE username = ${user}))`;
 
     if (res.rowCount > 0) {
-      response.send("Note was created successfully.");
+      response.send({ message: "Note was created successfully." });
     } else {
-      response.send("Note could NOT be created.");
+      response.send({ message: "Note could NOT be created." });
     }
   } catch (error) {
-    response.send(`Something went wrong. ${error}`);
+    response.send({ message: `Something went wrong. ${error}` });
   }
 };
 
@@ -43,7 +43,7 @@ const getIndividualNote = async (request, response) => {
 
   try {
     const res = await postgres.sql`
-        SELECT * FROM notes
+        SELECT notes.id, notes.content, notes."createdAt", notes."userId" FROM notes
         JOIN users ON notes."userId" = users.id
         WHERE notes.id = ${note} AND UPPER(users.username) = UPPER(${user});
       `;
@@ -51,10 +51,10 @@ const getIndividualNote = async (request, response) => {
     if (res.rowCount > 0) {
       response.send(res.rows);
     } else {
-      response.send("Note could NOT be found.");
+      response.send({ message: "Note could NOT be found." });
     }
   } catch (error) {
-    response.send(`Something went wrong. ${error}`);
+    response.send({ message: `Something went wrong. ${error}` });
   }
 };
 
@@ -72,16 +72,16 @@ const updateIndividualNote = async (request, response) => {
       `;
 
     if (res.rowCount > 0) {
-      response.send(
-        `Note with ID ${note} updated successfully for user ${user}.`
-      );
+      response.send({
+        message: `Note with ID ${note} updated successfully for user ${user}.`,
+      });
     } else {
-      response.send(
-        `Note with ID ${note} not found or does not belong to user ${user}.`
-      );
+      response.send({
+        message: `Note with ID ${note} not found or does not belong to user ${user}.`,
+      });
     }
   } catch (error) {
-    response.send(`Something went wrong. ${error}`);
+    response.send({ message: `Something went wrong. ${error}` });
   }
 };
 
@@ -97,12 +97,12 @@ const deleteIndividualNote = async (request, response) => {
       `;
 
     if (res.rowCount > 0) {
-      response.send(`Note with ID ${note} deleted successfully.`);
+      response.send({ message: `Note with ID ${note} deleted successfully.` });
     } else {
-      response.send(`Note with ID ${note} not found.`);
+      response.send({ message: `Note with ID ${note} not found.` });
     }
   } catch (error) {
-    response.send(`Something went wrong. ${error}`);
+    response.send({ message: `Something went wrong. ${error}` });
   }
 };
 
